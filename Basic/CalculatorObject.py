@@ -46,5 +46,3 @@ class CalculatorObject(object):
         :return:两个操作数的乘法
         """
         return self.__val1 * self.__val2
-
-
