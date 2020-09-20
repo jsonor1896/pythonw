@@ -50,5 +50,12 @@ class Arp:
               interval=interval, verbose=Arp.Verbose)
 
 
+class InteractionArp:
+
+    @staticmethod
+    def run():
+        pass
+
+
 if __name__ == '__main__':
     pass
