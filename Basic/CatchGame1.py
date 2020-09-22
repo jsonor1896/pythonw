@@ -5,6 +5,7 @@ Player1 = 0
 Player2 = 0
 TotalStep = 50
 
+
 def go_forward(player_step):
     step = random.randint(1, 6)
     current_step = player_step + step

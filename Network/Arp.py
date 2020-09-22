@@ -1,9 +1,9 @@
 import sys
+from argparse import ArgumentParser
 
 from scapy.layers.l2 import *
-
+sys.path.append('..')
 from Network.Tools import Tools
-
 
 class Arp:
 
@@ -54,8 +54,26 @@ class InteractionArp:
 
     @staticmethod
     def run():
-        pass
+        parser = ArgumentParser('arp tools')
+        parser.add_argument('-v', '--verbose', type=bool, default=False, help='display debug information')
+        parser.add_argument('-e', '--ether', type=str, required=True, help='the ether name')
+        parser.add_argument('-t', '--time', type=float, default=1, help='the timeout of response')
+        parser.add_argument('-p', '--pdst', type=str, required=True, help='the ip of destination host')
+        parser.add_argument('-f', '--pfake', type=str, help='the spool ip, always set as gateway')
+        args = parser.parse_args()
+        print(args)
+
+        arp = Arp(ether_name=args.ether, timeout=args.time)
+        Arp.Verbose = args.verbose
+        if args.pfake:
+            arp.spoof(pdst=args.pdst, pfake=args.pfake)
+        else:
+            hwsrc = arp.who_has(pdst=args.pdst)
+            if hwsrc:
+                print('ip = {}, mac = {}'.format(args.pdst, hwsrc))
+            else:
+                print('ip = {} do not find'.format(args.pdst))
 
 
 if __name__ == '__main__':
-    pass
+    InteractionArp.run()
