@@ -58,6 +58,32 @@ def demo4():
     print(args.family, args.name)
 
 
+def demo5():
+    """
+    对立参数，如果使用了一个参数，则另外一个参数是禁用的
+    """
+    parser = ArgumentParser(description='demo5')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-v', '--verbose', type=str, default='男', help='性别')
+    group.add_argument('-s', '--string', type=str, default='女', help='性别女')
+
+    args = parser.parse_args()
+
+    print(args)
+    print(args.verbose, args.string)
+
+
+def demo6():
+    """
+    默认
+    """
+    parser = ArgumentParser(description='demo6')
+    parser.add_argument('-v', '--verbose', action='store_true')  # 如果使用-v则该参数为true，否则为false
+    args = parser.parse_args()
+
+    print(args)
+    print(args.verbose)
+
 
 if __name__ == '__main__':
-    demo4()
+    demo6()

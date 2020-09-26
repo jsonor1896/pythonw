@@ -45,7 +45,9 @@ class Player:
         if self.__current_pos > self.__total_step:
             self.__current_pos = self.__total_step - (self.__current_pos - self.__total_step)
 
-        return True if self.__current_pos == self.__total_step else False
+
+    def has_rearched(self):
+        return self.__current_pos == self.__total_step
 
 
 def view(players):
@@ -54,6 +56,12 @@ def view(players):
         print(item.name, item.prev_pos, '+', item.prev_step, '=', item.current_pos, '-' * item.current_pos)
 
 
+def player_go_forward(player):
+    input('请按回车键前进{name}'.format(name=player.name))
+    player.go_forward()
+    view(players)
+    return player.has_rearched()
+
 
 if __name__ == '__main__':
     players = (Player('player1', 50), Player('player2', 50))
@@ -61,11 +69,9 @@ if __name__ == '__main__':
     while True:
         view(players)
         for player in players:
-            input('按回车前进 {name}'.format(name=player.name))
-            result = player.go_forward()
-            view(players)
-            if result:
-                exit('胜利 {name}'.format(name=player.name))
+            has_rearch = player_go_forward(player)
+            if has_rearch:
+                exit('{name}赢得了比赛的胜利'.format(name=player.name))
 
 
 

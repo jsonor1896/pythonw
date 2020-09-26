@@ -1,5 +1,6 @@
 import sys
 from configparser import ConfigParser
+import random
 
 from scapy.arch import *
 
@@ -41,3 +42,8 @@ class Tools:
             raise Exception('read ethernet information failed!')
 
         return mac, ip4
+
+
+    @staticmethod
+    def get_random_ip():
+        return '.'.join([str(random.randint(1, 254)) for _ in range(0 ,4)])
