@@ -1,41 +1,42 @@
 import os
 import random
 
-Player1 = 0
-Player2 = 0
-TotalStep = 50
 
-
-def go_forward(player_step):
+def go_forward(player_step, total_step):
     step = random.randint(1, 6)
-    current_step = player_step + step
+    player_step = player_step + step
 
-    if current_step > TotalStep:
-        current_step = TotalStep - (current_step - TotalStep)
+    if player_step > total_step:
+        player_step = total_step - (player_step - total_step)
 
-    return step, current_step
+    return player_step, step
 
 
-def view(step):
+def display_input(player1, player2, input_string, step_string=None):
     os.system('cls')
-    print('player1 ', Player1, ':', '-' * Player1)
-    print('player2 ', Player2, ':', '-' * Player2)
-    if step > 0:
-        print('The step is ', step)
+    print('player1:', '-' * player1, player1)
+    print('player2:', '-' * player2, player2)
+    if step_string is None:
+        print(step_string)
+    input(input_string)
 
 
 if __name__ == '__main__':
-    step1 = step2 = 0
+    player1_step = 0
+    player2_step = 0
+    total_step = 50
+
+    display_input(player1_step, player2_step, 'the turn of player1')
+
     while True:
-        view(step2)
-        if Player2 == TotalStep:
-            print('player 2 win the game')
+        player1_step, step = go_forward(player1_step, total_step)
+        if player1_step == total_step:
+            print('player1 win the game')
             break
-        input('this is the turn of player1')
-        step1, Player1 = go_forward(Player1)
-        view(step1)
-        if Player1 == TotalStep:
-            print('player 1 win the game')
+        display_input(player1_step, player2_step, 'the turn of player2', f'player1 step {step}')
+
+        player2_step, step = go_forward(player2_step, total_step)
+        if player2_step == total_step:
+            print('player2 win the game')
             break
-        input('this is the turn of player2')
-        step2, Player2 = go_forward(Player2)
+        display_input(player1_step, player2_step, 'the turn of player1', f'player2 step {step}')

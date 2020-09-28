@@ -78,7 +78,7 @@ class Arp:
         return host
 
 
-    def asycn_host_scan(self, pdst, process_count=4):
+    def async_host_scan(self, pdst, process_count=4):
         """
         使用多核进行arp的主机扫描
         :param pdst: 目的地IP地址

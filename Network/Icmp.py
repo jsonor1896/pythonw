@@ -84,7 +84,6 @@ class Icmp:
             print(f'send packet dst = {pdst}, src = {packet.getlayer(IP).src}')
 
 
-
     def scan_host(self, pdst):
         """
         扫描目标ip地址段，获取存活主机信息
