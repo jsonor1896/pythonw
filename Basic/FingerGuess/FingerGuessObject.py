@@ -36,7 +36,6 @@ class FingerGuessRobot(object):
         else:
             self.__result_rate = [20, 50, 100]
 
-
     def __random_game_result(self):
         random_val = random.randint(1, 100)
         if random_val < self.__result_rate[0]:
@@ -45,7 +44,6 @@ class FingerGuessRobot(object):
             return 0
         else:
             return -1
-
 
     def finger(self, your_finger):
         result = self.__random_game_result()
