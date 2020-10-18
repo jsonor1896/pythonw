@@ -49,7 +49,6 @@ class ImageCombination:
         self.__image_fragments = image_fragments
         self.__image_header = image_header
 
-
     def combine(self):
         permuation = itertools.permutations(self.__image_fragments, len(self.__image_fragments))
         image_list = list(permuation)

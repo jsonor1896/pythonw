@@ -43,7 +43,6 @@ class TcpSocketServer:
         向指定的地址address主机发送消息message
         :param address: 主机地址key
         :param message: 发送的消息内容
-        :return:
         """
         conn = self.__connect(address)
         if conn:

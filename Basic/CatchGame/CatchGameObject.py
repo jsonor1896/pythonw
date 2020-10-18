@@ -12,22 +12,26 @@ class Player:
         """
         self.__name = name
         self.__current_pos = 0
-        self.__step = 0
         self.__total_step = total_step
 
     @property
     def name(self):
+        """
+        获取用户名
+        """
         return self.__name
 
     def go_forward(self):
         """
         玩家前进
         """
-        self.__step = random.randint(1, 6)
-        self.__current_pos = self.__step + self.__current_pos
+        step = random.randint(1, 6)
+        self.__current_pos = step + self.__current_pos
 
         if self.__current_pos > self.__total_step:
             self.__current_pos = self.__total_step - (self.__current_pos - self.__total_step)
+
+        return step
 
     def has_rearched(self):
         """
@@ -43,33 +47,39 @@ class Player:
         print(self.__name, '-' * self.__current_pos, self.__current_pos )
 
 
-def view(players):
-    os.system('cls')
-    for item in players:
-        item.dipslay()
+class CatchGame:
+    """
+    你追我赶游戏
+    """
 
+    def __init__(self, *players):
+        """
+        构造函数
+        :param players: 游戏者列表
+        """
+        self.__players = players
 
-def players_go(players):
-    for player in players:
-        input(f'请按回车键前进{player.name}')
-        player.go_forward()
-        view(players)
+    def __show(self):
+        """
+        清屏显示数据
+        """
+        os.system('cls')
+        for item in self.__players:
+            item.display()
 
-        if player.has_rearched():
-            return player
-
-    return None
+    def start(self):
+        self.__show()
+        while True:
+            for player in players:
+                input(f'{player.name}请按回车键前进')
+                player.go_forward()
+                self.__show()
 
 
 if __name__ == '__main__':
     players = (Player('player1', 50), Player('player2', 50))
-
-    while True:
-        view(players)
-        player = players_go(players)
-        if player:
-            print(f'{player.name}赢得了比赛')
-            break
+    catch_game = CatchGame(players)
+    catch_game.start()
 
 
 
