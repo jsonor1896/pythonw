@@ -52,7 +52,6 @@ class ImageCombination:
     def combine(self):
         permuation = itertools.permutations(self.__image_fragments, len(self.__image_fragments))
         image_list = list(permuation)
-        print(image_list)
         i = 0
         for item in image_list:
             with open(str(i) + '.jpg', 'wb') as handler:

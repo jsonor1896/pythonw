@@ -6,8 +6,6 @@ import os
 import subprocess
 from concurrent.futures.process import ProcessPoolExecutor
 
-import gevent
-
 
 class IcmpOs:
     """

@@ -43,6 +43,10 @@ class Tools:
 
         return mac, ip4
 
+    @staticmethod
+    def get_random_port():
+        return random.randint(3000, 65534)
+
 
     @staticmethod
     def get_random_ip():

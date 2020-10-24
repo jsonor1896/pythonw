@@ -7,7 +7,7 @@ from concurrent.futures.process import ProcessPoolExecutor
 from scapy.layers.inet import *
 from scapy.sendrecv import send
 
-sys.path.append('..')
+sys.path.append('../..')
 from Network.Tools import Tools
 
 
@@ -32,7 +32,7 @@ class Icmp:
         packet = IP(dst=pdst)/ICMP(type=8, code=0)/b'echo payload'
         response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
 
-        return response.getlayer(ICMP) if response else None
+        return response
 
 
     def request_timestamp(self, pdst):
@@ -44,7 +44,7 @@ class Icmp:
         packet = IP(dst=pdst)/ICMP(type=13, code=0)/b'timestamp payload'
         response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
 
-        return response.getlayer(ICMP) if response else None
+        return response
 
 
     def tracert(self, pdst):
@@ -59,10 +59,8 @@ class Icmp:
             interval_time = (time.time() - start_time) * 1000
             if answered:
                 response = answered.res[0][1]
-                ip = response.getlayer(IP).src
-                icmp = response.getlayer(ICMP)
-                print(f'{ttl}\treach {ip}\t\t{interval_time:.2f} ms')
-                if icmp.code == 0 and icmp.type== 0: break
+                print(f'{ttl}\treach {response[IP].src}\t\t{interval_time:.2f} ms')
+                if response[ICMP].code == 0 and response[ICMP].type== 0: break
             else:
                 print(f'{ttl}\treach *')
 
@@ -81,7 +79,7 @@ class Icmp:
                 packet = IP(dst=pdst)/ICMP(type=8, code=0)/b'abcdefg'
 
             send(packet, count=1, verbose=self.__verbose)
-            print(f'send packet dst = {pdst}, src = {packet.getlayer(IP).src}')
+            print(f'send packet dst = {pdst}, src = {packet[IP].src}')
 
 
     def scan_host(self, pdst):
@@ -111,13 +109,15 @@ class Icmp:
         if len(ips) < 4:
             process_count = 1
 
-        host = []
+        active_hosts = []
         with ProcessPoolExecutor(max_workers=process_count) as executor:
-            future_of_func = [executor.submit(self.scan_host, ips[i::process_count]) for i in range(0, process_count)]
+            future_of_func = [executor.submit(self.request_echo, str(ip)) for ip in ips]
             for future in concurrent.futures.as_completed(future_of_func):
-                host.append(future.result())
+                res = future.result()
+                if res:
+                    active_hosts.append(future.result()[IP].src)
 
-        return host
+        return active_hosts
 
 
 class InteractionIcmp:
