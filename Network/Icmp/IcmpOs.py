@@ -4,6 +4,7 @@ import concurrent
 import ipaddress
 import os
 import subprocess
+from argparse import ArgumentParser
 from concurrent.futures.process import ProcessPoolExecutor
 
 
@@ -25,10 +26,12 @@ class IcmpOs:
     def ping_os(cls, ip):
         """
         调用系统命令ping实现对单个ip地址的ping操作
+        linux下命令的重定向：ping www.baidu.com > /dev/null
         :return: 如果ping成功，返回True，否则返回False
         """
         with open(os.devnull, 'w') as fnull:
             cmd = 'ping {} {}'.format(ip, '-c 1')
+            # 也可以用 os.system(cmd, shell=True, stdout=fnull, stderr=fnull)
             result = subprocess.call(cmd, shell=True, stdout=fnull, stderr=fnull)
 
         return (str(ip), False) if result else (str(ip), True)
@@ -58,3 +61,25 @@ class IcmpOs:
                 scan_result.append(future.result())
 
         return scan_result
+
+class InteractionIcmpOs:
+
+    @staticmethod
+    def run():
+        args_parser = ArgumentParser('icmp detector by os')
+        args_parser.add_argument('-p', '--pdst', required=True, type=str)
+
+        args = args_parser.parse_args()
+        icmp_os = IcmpOs(args.pdst)
+        result_list = icmp_os.start()
+        for item in result_list:
+            print(item)
+
+
+if __name__ == '__main__':
+    InteractionIcmpOs.run()
+
+
+
+
+

@@ -22,18 +22,16 @@ class Icmp:
         self.__timeout = timeout
         self.__verbose = verbose
 
-
     def request_echo(self, pdst):
         """
         发送request echo请求
         :param pdst: 目的地ip地址
         :return: icmp响应数据包
         """
-        packet = IP(dst=pdst)/ICMP(type=8, code=0)/b'echo payload'
+        packet = IP(dst=pdst) / ICMP(type=8, code=0) / b'echo payload'
         response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
 
         return response
-
 
     def request_timestamp(self, pdst):
         """
@@ -41,11 +39,10 @@ class Icmp:
         :param pdst: 目的地IP地址
         :return: icmp响应数据包
         """
-        packet = IP(dst=pdst)/ICMP(type=13, code=0)/b'timestamp payload'
+        packet = IP(dst=pdst) / ICMP(type=13, code=0) / b'timestamp payload'
         response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
 
         return response
-
 
     def tracert(self, pdst):
         """
@@ -54,16 +51,15 @@ class Icmp:
         """
         for ttl in range(0, 32):
             start_time = time.time()
-            packet = IP(dst=pdst, ttl=ttl)/ICMP(type=8, code=0)/b'tracert payload'
+            packet = IP(dst=pdst, ttl=ttl) / ICMP(type=8, code=0) / b'tracert payload'
             answered, _ = sr(packet, timeout=3, verbose=self.__verbose)
             interval_time = (time.time() - start_time) * 1000
             if answered:
                 response = answered.res[0][1]
                 print(f'{ttl}\treach {response[IP].src}\t\t{interval_time:.2f} ms')
-                if response[ICMP].code == 0 and response[ICMP].type== 0: break
+                if response[ICMP].code == 0 and response[ICMP].type == 0: break
             else:
                 print(f'{ttl}\treach *')
-
 
     def flood(self, pdst, pfake=False):
         """
@@ -74,13 +70,12 @@ class Icmp:
         while True:
             if pfake:
                 psrc = Tools.get_random_ip()
-                packet = IP(dst=pdst, src=psrc)/ICMP(type=8, code=0)/b'abcdefg'
+                packet = IP(dst=pdst, src=psrc) / ICMP(type=8, code=0) / b'abcdefg'
             else:
-                packet = IP(dst=pdst)/ICMP(type=8, code=0)/b'abcdefg'
+                packet = IP(dst=pdst) / ICMP(type=8, code=0) / b'abcdefg'
 
             send(packet, count=1, verbose=self.__verbose)
             print(f'send packet dst = {pdst}, src = {packet[IP].src}')
-
 
     def scan_host(self, pdst):
         """
@@ -95,7 +90,6 @@ class Icmp:
             if response: host.append(ip)
 
         return host
-
 
     def async_host_scan(self, pdst, process_count=4):
         """
@@ -125,7 +119,7 @@ class InteractionIcmp:
     @staticmethod
     def run():
         parser = ArgumentParser('icmp tools')
-        parser.add_argument('-v', '--verbose', action='store_true', help='display the debug information' )
+        parser.add_argument('-v', '--verbose', action='store_true', help='display the debug information')
         parser.add_argument('-p', '--pdst', type=str, required=True, help='the destination ip of host')
         parser.add_argument('--spool', action='store_true', help='fake the source ip')
         parser.add_argument('-t', '--thread', type=int, default=4, help='the count of thread for scan host')
