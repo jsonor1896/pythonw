@@ -60,7 +60,7 @@ class Tools:
         return '.'.join([str(random.randint(1, 254)) for _ in range(0, 4)])
 
     @staticmethod
-    def random_bytes_message(size = 32):
+    def random_bytes_message(size=32):
         bytes_available = (
             b'abcdefghijklmnopqrstuvwxyz'
             b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'

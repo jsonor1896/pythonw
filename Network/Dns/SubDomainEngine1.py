@@ -10,7 +10,7 @@ class SubDomainEngine1:
     """
 
     @staticmethod
-    def __get_subdomain(search_engine:str, domain:str, func_format_url, func_parse_html):
+    def __get(search_engine:str, domain:str, func_format_url, func_parse_html):
         """
         向指定搜索引擎搜索获取特定域名下的所有子域名，模板函数
         :param search_engine: 搜索引擎
@@ -38,7 +38,7 @@ class SubDomainEngine1:
         return subdomain_set
 
     @staticmethod
-    def get_subdomain_by_bing_search(domain:str):
+    def get_by_bingsearch(domain:str):
         """
         通过bing搜索引擎获取到网站的子域名
         :param domain: 主机域名
@@ -70,10 +70,10 @@ class SubDomainEngine1:
 
             return subs
 
-        return SubDomainEngine1.__get_subdomain('https://www.bing.com', domain, func_format_url, func_parse_html)
+        return SubDomainEngine1.__get('https://www.bing.com', domain, func_format_url, func_parse_html)
 
     @staticmethod
-    def get_subdomain_by_baidu_search(domain:str):
+    def get_by_baidusearch(domain:str):
         """
         通过百度搜索引擎获取特定域名下的所有子域名
         :param domain: 域名
@@ -118,7 +118,7 @@ class SubDomainEngine1:
 
             return subs
 
-        return SubDomainEngine1.__get_subdomain('https://www.baidu.com', domain, func_format_url, func_parse_html)
+        return SubDomainEngine1.__get('https://www.baidu.com', domain, func_format_url, func_parse_html)
 
     @staticmethod
     def has_chinese(string):

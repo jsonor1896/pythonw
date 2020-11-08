@@ -1,3 +1,5 @@
+import os
+
 from scapy.layers.inet import *
 
 from Network.Tools import Tools
@@ -16,19 +18,11 @@ class Mtu:
         ICMP_HEADER_SIZE = 20 + 8
         payload = Tools.random_bytes_message(size - ICMP_HEADER_SIZE)
         if pdst is None:
-            pdst = socket.gethostbyname('www.baidu.com')
+            pdst = 'www.baidu.com'
         message = IP(flags='DF', dst=pdst) / ICMP() / payload
         answered = sr1(message, timeout=2, verbose=False)
 
         return answered is not None
-
-    @classmethod
-    def __get_baidu_ip(cls):
-        """
-        获取百度的ip地址
-        :return: 百度的ip地址
-        """
-        return socket.gethostbyname('www.baidu.com')
 
     @classmethod
     def calc(cls, minmtu=1440, maxmtu=1510):
@@ -38,15 +32,31 @@ class Mtu:
         :param maxmtu: 最大mtu测试值，默认是1510
         :return: mtu值
         """
-        pdst = cls.__get_baidu_ip()
         for size in range(maxmtu, minmtu, -1):
-            res = cls.__send(size, pdst)
+            res = cls.__send(size)
             if res:
                 print(f'[+] {size} bytes message send success')
                 return size
             else:
                 print(f'[-] {size} bytes message send failed, the payload size is too larger for send')
 
+    @classmethod
+    def calc_byos(cls, minmtu=1440, maxmtu=1510):
+        """
+        调用系统的ping方法计算MTU
+        :param minmtu: 起始mtu测试值，默认是1440
+        :param maxmtu: 最大mtu测试值，默认是1510
+        :return: mtu值
+        """
+        for size in range(maxmtu - 28, minmtu - 28, -1):
+            cmd = f'ping www.baidu.com -n 2 -f -l {size} > NUL'
+            resp = os.system(cmd)
+            if resp > 0:
+                print(f'[-] {size} bytes message send failed, the payload size is too larger for send')
+            else:
+                print(f'[+] {size} bytes message send success')
+                return size + 28
+
 
 if __name__ == '__main__':
-   Mtu.calc()
+   size = Mtu.calc_byos()

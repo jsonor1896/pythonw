@@ -6,9 +6,9 @@ from concurrent.futures.process import ProcessPoolExecutor
 
 from scapy.layers.inet import *
 from scapy.sendrecv import send
+from scapy.volatile import RandIP
 
 sys.path.append('../..')
-from Network.Tools import Tools
 
 
 class Icmp:
@@ -28,21 +28,19 @@ class Icmp:
         :param pdst: 目的地ip地址
         :return: icmp响应数据包
         """
-        packet = IP(dst=pdst) / ICMP(type=8, code=0) / b'echo payload'
-        response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
+        ans, _ = self.__sendrecv(dst=pdst, payload=b'echo request')
 
-        return response
+        return ans
 
     def request_timestamp(self, pdst):
         """
-        发送request timestamp请求，注意，请使用管理员模式运行
+        发送request timestamp请求，注意，在windows10 下需要使用管理员模式运行
         :param pdst: 目的地IP地址
         :return: icmp响应数据包
         """
-        packet = IP(dst=pdst) / ICMP(type=13, code=0) / b'timestamp payload'
-        response = sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
+        ans, _ = self.__sendrecv(dst=pdst, payload=b'timestamp')
 
-        return response
+        return ans
 
     def tracert(self, pdst):
         """
@@ -50,29 +48,27 @@ class Icmp:
         :param pdst: 目的地IP地址
         """
         for ttl in range(0, 32):
-            start_time = time.time()
-            packet = IP(dst=pdst, ttl=ttl) / ICMP(type=8, code=0) / b'tracert payload'
-            answered, _ = sr(packet, timeout=3, verbose=self.__verbose)
-            interval_time = (time.time() - start_time) * 1000
-            if answered:
-                response = answered.res[0][1]
-                print(f'{ttl}\treach {response[IP].src}\t\t{interval_time:.2f} ms')
-                if response[ICMP].code == 0 and response[ICMP].type == 0: break
+            start = time.time()
+            ans, unans = self.__sendrecv(dst=pdst, ttl=ttl, payload=b'tracert')
+            interval = (time.time() - start) * 1000
+            if ans:
+                print('{:<5} reach {:<15} {:.2f}ms'.format(ttl, ans[IP].src, interval))
+                if ans[ICMP].code == 0 and ans[ICMP].type == 0:
+                    break
             else:
                 print(f'{ttl}\treach *')
 
-    def flood(self, pdst, pfake=False):
+    def flood(self, pdst, randomsrc=False):
         """
         ICMP flood
         :param pdst: 目标主机ip地址
-        :param pfake: 是否伪造ip地址
+        :param randomsrc: 是否伪造ip地址
         """
         while True:
-            if pfake:
-                psrc = Tools.get_random_ip()
-                packet = IP(dst=pdst, src=psrc) / ICMP(type=8, code=0) / b'abcdefg'
+            if randomsrc:
+                packet = self.__packet(dst=pdst, randomsrc=True, payload=b'abcdefg')
             else:
-                packet = IP(dst=pdst) / ICMP(type=8, code=0) / b'abcdefg'
+                packet = self.__packet(dst=pdst, payload=b'abcdefg')
 
             send(packet, count=1, verbose=self.__verbose)
             print(f'send packet dst = {pdst}, src = {packet[IP].src}')
@@ -113,6 +109,46 @@ class Icmp:
 
         return active_hosts
 
+    def __packet(self, dst, ttl=64, type=8, code=0, randomsrc=False, payload=None):
+        """
+        打包一个特定的ICMP数据包
+        :param dst: 目的地地址
+        :param ttl: ttl值
+        :param type: icmp的type
+        :param code: icmp的code
+        :param randomsrc: 是否随机ip地址
+        :param payload: payload信息
+        :return: ICMP数据包
+        """
+        if payload is None:
+            payload = b'icmp payload'
+
+        if randomsrc:
+            src = RandIP()
+            packet = IP(dst=dst, src=src, ttl=ttl) / ICMP(type=type, code=code) / payload
+        else:
+            packet = IP(dst=dst, ttl=ttl) / ICMP(type=type, code=code) / payload
+
+        return packet
+
+    def __sendrecv(self, dst, ttl=64, type=8, code=0, randomsrc=False, payload=None):
+        """
+        发送特定的ICMP协议数据，并返回响应数据结果
+        :param dst: 目的地地址
+        :param ttl: ttl值
+        :param type: icmp的type
+        :param code: icmp的code
+        :param randomsrc: 是否随机ip地址
+        :param payload: payload信息
+        :return: 响应的数据包
+        """
+        packet = self.__packet(dst=dst, ttl=ttl, type=type, code=code, randomsrc=randomsrc, payload=payload)
+        ans, unans = sr(packet, timeout=self.__timeout, verbose=self.__verbose)
+        if len(ans) > 0:
+            return ans[0][1], unans
+        else:
+            return None, unans
+
 
 class InteractionIcmp:
 
@@ -144,7 +180,7 @@ class InteractionIcmp:
         elif args.tracert:
             icmp.tracert(args.pdst)
         elif args.flood:
-            icmp.flood(args.pdst, pfake=args.spool)
+            icmp.flood(args.pdst, randomsrc=args.spool)
         elif args.scan:
             host = icmp.async_host_scan(args.pdst, process_count=args.thread)
             print('the list of active host')
