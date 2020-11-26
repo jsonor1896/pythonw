@@ -57,7 +57,6 @@ class SubDomainEngine1:
         def func_parse_html(**kwargs):
             """
             解析html数据，返回当前页存在的所有子域名
-            :param html: 当前页面的html代码
             :return: 子域名集合
             """
             subs = set()

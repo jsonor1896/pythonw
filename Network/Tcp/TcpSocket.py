@@ -1,50 +1,97 @@
 import concurrent
+import os
 import socket
+from argparse import ArgumentParser
 from concurrent.futures.process import ProcessPoolExecutor
 
 
 class TcpSocket:
 
-    def __init__(self, pdst):
+    def __init__(self, host, ports):
         """
         Tcp Socket对象
-        :param pdst: 目标ip地址
-        """
-        self.__pdst = pdst
-        self.__sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
 
-    def port_state(self, port):
+        :param host: 目标ip地址
+        :param ports: 端口列表
         """
-        扫描主机的特定端口号，返回该端口的存活状态
-        connect/connect_ex的区别：https://blog.51cto.com/yangrong/1339593
-        :param port: 端口列表
-        :return: 端口存活，返回True，否则返回False
-        """
-        return self.__sk.connect_ex((self.__sk, port))
+        self.host = host
+        try:
+            self.ip4 = socket.gethostbyname(host)
+        except:
+            print('[-] 无法解析主机地址', host)
 
-    def port_scan(self, port_range):
-        """
-        扫描主机的一系列端口，返回端口的状态集合
-        :param port_range: 端口集合
-        :return: 端口的状态集合
-        """
-        res = []
-        for port in port_range:
-            state = self.port_state(port)
-            res.append((port_range, state))
+        self.ports = ports
 
-        return res
-
-    def port_scan_async(self, port_range):
+    def checkport(self, port, detail=False):
         """
-        使用多核方式进行主机的端口扫描
-        :param port_range: 端口范围
-        :return: 端口的状态集合
-        """
-        res = []
-        with ProcessPoolExecutor(max_workers=6) as executor:
-            func_futures = [executor.submit(self.port_state, port) for port in port_range]
-            for future in concurrent.futures.as_completed(func_futures):
-                res.append(future.result())
+        以全TCP连接三次握手的方式进行指定端口的扫描
 
-        return res
+        :param port: 端口
+        :param detail: 是否获取端口的应用标识
+        """
+        skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+
+        # connect和connect_ex的区别
+        # https://docs.python.org/3/library/socket.html
+        code = skt.connect_ex((self.ip4, port))
+        if code == 0:
+            txt = f'[+] {port} tcp open'
+            if detail:
+                skt.send('port detial information\r\n'.encode('utf-8'))
+                response = skt.recv(100)
+                txt += f'\t[+] {str(response)}'
+        else:
+            txt = f'[-] {port} tcp closed'
+
+        skt.close()
+        print(txt)
+
+    def scan(self, detail=False):
+        """
+        以全TCP连接三次握手的方式进行全端口的扫描
+
+        :param detail: 是否获取端口的应用标识
+        """
+
+        socket.setdefaulttimeout(1)
+        for port in self.ports:
+            self.checkport(port, detail)
+
+    def async_scan(self, detial=False):
+        """
+        使用异步的方式进行TCP连接三次握手的方式进行全端口的扫描
+
+        :param detial: 是否输出详情
+        """
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            tasks = [executor.submit(self.checkport, port, detial) for port in self.ports]
+            concurrent.futures.wait(tasks, return_when=concurrent.futures.ALL_COMPLETED)
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='tcp port scan')
+    parser.add_argument('-t', '--host', required=True, type=str)
+    parser.add_argument('-p', '--ports', required=True, type=str)
+    parser.add_argument('-d', '--detail', action='store_true', default=False)
+    parser.add_argument('-a', '--thread', action='store_true', default=False)
+    args = parser.parse_args()
+
+    # port = 1-1000
+    if '-' in args.ports:
+        s = args.ports.split('-')
+        ports = [port for port in range(int(s[0]), int(s[1]) + 1)]
+
+    # port = 10,22,34,90
+    elif ',' in args.ports:
+        ports = [int(port) for port in args.ports.split(',')]
+
+    # port = 10
+    else:
+        ports = int(args.ports)
+
+    tcpSk = TcpSocket(args.host, ports)
+
+    if args.thread:
+        tcpSk.async_scan(args.detail)
+    else:
+        tcpSk.scan(args.detail)

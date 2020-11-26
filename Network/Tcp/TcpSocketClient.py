@@ -39,7 +39,7 @@ class TcpSocketClient:
 
 
 if __name__ == '__main__':
-    client = TcpSocketClient('192.168.2.59', 10001)
+    client = TcpSocketClient('10.10.95.247', 10001)
     client.connect()
     message = client.recv()
     print('recv message ', message)

@@ -16,62 +16,103 @@ class Icmp:
     def __init__(self, timeout=2, verbose=False):
         """
         ICMP协议
+
         :param timeout: 超时时间
         :param verbose: 是否输出调试信息
         """
+
         self.__timeout = timeout
         self.__verbose = verbose
 
-    def request_echo(self, pdst):
+    def __sendrecv1(self, packet):
+        """
+        包装系统的sr1函数
+
+        :param packet: 数据包
+        :return: 主机响应数据
+        """
+
+        return sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
+
+    def request_echo(self, host):
         """
         发送request echo请求
-        :param pdst: 目的地ip地址
+
+        :param host: 目标主机
         :return: icmp响应数据包
         """
-        ans, _ = self.__sendrecv(dst=pdst, payload=b'echo request')
 
-        return ans
+        packet = IP(dst=host) / ICMP()
 
-    def request_timestamp(self, pdst):
+        return self.__sendrecv1(packet)
+
+    def request_timestamp(self, host):
         """
-        发送request timestamp请求，注意，在windows10 下需要使用管理员模式运行
-        :param pdst: 目的地IP地址
+        发送request timestamp请求，注意，在windows10下需要使用管理员模式运行
+
+        :param host: 目的地IP地址
         :return: icmp响应数据包
         """
-        ans, _ = self.__sendrecv(dst=pdst, payload=b'timestamp')
 
-        return ans
+        packet = IP(dst=host) / ICMP(type=13, code=0)
 
-    def tracert(self, pdst):
+        return self.__sendrecv1(packet)
+
+    def tracert(self, host):
         """
         路径检测
-        :param pdst: 目的地IP地址
+        :param host: 目的地IP地址
         """
+
+        TXT_FORMAT = '{:<3} reach {:<15} {:.2f}ms'
+
         for ttl in range(0, 32):
             start = time.time()
-            ans, unans = self.__sendrecv(dst=pdst, ttl=ttl, payload=b'tracert')
+            ans = self.__sendrecv1(IP(dst=host, ttl=ttl) / ICMP())
             interval = (time.time() - start) * 1000
+
             if ans:
-                print('{:<5} reach {:<15} {:.2f}ms'.format(ttl, ans[IP].src, interval))
+                print(TXT_FORMAT.format(ttl, ans[IP].src, interval))
+                # 如果正常收到icmp的响应包，表示数据到到达目的地
                 if ans[ICMP].code == 0 and ans[ICMP].type == 0:
                     break
             else:
-                print(f'{ttl}\treach *')
+                print(TXT_FORMAT.format(ttl, '*', interval))
 
-    def flood(self, pdst, randomsrc=False):
+    def mtu(self, host='www.baidu.com', minmtu=1440, maxmtu=1510):
         """
-        ICMP flood
-        :param pdst: 目标主机ip地址
-        :param randomsrc: 是否伪造ip地址
+        测试网络的mtu值，默认的测试范围是 [1510, 1440]
+
+        :param host: 默认的测试主机是:www.baidu.com
+        :param minmtu: 默认的最小mtu=1440
+        :param maxmtu: 默认的最大mtu=1510
+        :return: 当前网络的mtu值
         """
-        while True:
-            if randomsrc:
-                packet = self.__packet(dst=pdst, randomsrc=True, payload=b'abcdefg')
+
+        for size in range(maxmtu, minmtu, -1):
+            payload = b'a' * (size - 28)
+            packet = IP(dst=host, flags='DF') / ICMP() / payload
+            ans = self.__sendrecv1(packet)
+            if ans:
+                print(f'[+] {size} bytes message send success')
+                return size
             else:
-                packet = self.__packet(dst=pdst, payload=b'abcdefg')
+                print(f'[-] {size} bytes message send failed, the payload size is too larger for send')
 
+    def flood(self, host):
+        """
+        ICMP 泛洪攻击
+        :param host: 目标主机ip地址
+        """
+
+        number = 0
+        while True:
+            number = number + 1
+            # 随机IP地址时需每次生成一个新的IP地址
+            packet = IP(dst=host, src=RandIP()) / ICMP() / b'abcdefg'
             send(packet, count=1, verbose=self.__verbose)
-            print(f'send packet dst = {pdst}, src = {packet[IP].src}')
+
+            print('{:<10}send packet dst = {}, src = {}'.format(number, host, packet[IP].src))
 
     def scan_host(self, pdst):
         """
@@ -94,6 +135,7 @@ class Icmp:
         :param process_count: 核心数
         :return: 存活主机ip地址
         """
+
         ips = list(ipaddress.ip_network(pdst).hosts())
 
         if len(ips) < 4:
@@ -109,85 +151,66 @@ class Icmp:
 
         return active_hosts
 
-    def __packet(self, dst, ttl=64, type=8, code=0, randomsrc=False, payload=None):
-        """
-        打包一个特定的ICMP数据包
-        :param dst: 目的地地址
-        :param ttl: ttl值
-        :param type: icmp的type
-        :param code: icmp的code
-        :param randomsrc: 是否随机ip地址
-        :param payload: payload信息
-        :return: ICMP数据包
-        """
-        if payload is None:
-            payload = b'icmp payload'
-
-        if randomsrc:
-            src = RandIP()
-            packet = IP(dst=dst, src=src, ttl=ttl) / ICMP(type=type, code=code) / payload
-        else:
-            packet = IP(dst=dst, ttl=ttl) / ICMP(type=type, code=code) / payload
-
-        return packet
-
-    def __sendrecv(self, dst, ttl=64, type=8, code=0, randomsrc=False, payload=None):
-        """
-        发送特定的ICMP协议数据，并返回响应数据结果
-        :param dst: 目的地地址
-        :param ttl: ttl值
-        :param type: icmp的type
-        :param code: icmp的code
-        :param randomsrc: 是否随机ip地址
-        :param payload: payload信息
-        :return: 响应的数据包
-        """
-        packet = self.__packet(dst=dst, ttl=ttl, type=type, code=code, randomsrc=randomsrc, payload=payload)
-        ans, unans = sr(packet, timeout=self.__timeout, verbose=self.__verbose)
-        if len(ans) > 0:
-            return ans[0][1], unans
-        else:
-            return None, unans
-
-
-class InteractionIcmp:
-
-    @staticmethod
-    def run():
-        parser = ArgumentParser('icmp tools')
-        parser.add_argument('-v', '--verbose', action='store_true', help='display the debug information')
-        parser.add_argument('-p', '--pdst', type=str, required=True, help='the destination ip of host')
-        parser.add_argument('--spool', action='store_true', help='fake the source ip')
-        parser.add_argument('-t', '--thread', type=int, default=4, help='the count of thread for scan host')
-
-        mutual_group = parser.add_mutually_exclusive_group()
-        mutual_group.add_argument('--echo', action='store_true', help='request echo icmp message')
-        mutual_group.add_argument('--timestamp', action='store_true', help='timestamp request icmp message')
-        mutual_group.add_argument('--tracert', action='store_true', help='icmp tracert')
-        mutual_group.add_argument('--flood', action='store_true', help='icmp flood')
-        mutual_group.add_argument('--scan', action='store_true', help='scan host')
-
-        args = parser.parse_args()
-
-        icmp = Icmp(verbose=args.verbose)
-
-        if args.echo:
-            response = icmp.request_echo(args.pdst)
-            response.show() if response else print('do not find the host')
-        elif args.timestamp:
-            response = icmp.request_timestamp(args.pdst)
-            response.show() if response else print('do not find the host')
-        elif args.tracert:
-            icmp.tracert(args.pdst)
-        elif args.flood:
-            icmp.flood(args.pdst, randomsrc=args.spool)
-        elif args.scan:
-            host = icmp.async_host_scan(args.pdst, process_count=args.thread)
-            print('the list of active host')
-            print(host)
-        else:
-            print('please input the correct arguments')
-
 
 if __name__ == '__main__':
-    InteractionIcmp.run()
+    parser = ArgumentParser('icmp tools')
+
+    # 基本参数
+    parser.add_argument('-v', '--verbose', action='store_true', help='display the debug information')
+    parser.add_argument('-p', '--pdst', type=str, required=True, help='the destination ip of host')
+    parser.add_argument('-t', '--thread', type=int, default=4, help='the count of thread for scan host')
+
+    # 互斥量
+    mutual_group = parser.add_mutually_exclusive_group()
+    mutual_group.add_argument('--echo', action='store_true', help='request echo icmp message')
+    mutual_group.add_argument('--timestamp', action='store_true', help='timestamp request icmp message')
+    mutual_group.add_argument('--tracert', action='store_true', help='icmp tracert')
+    mutual_group.add_argument('--flood', action='store_true', help='icmp flood')
+    mutual_group.add_argument('--scan', action='store_true', help='scan host')
+    mutual_group.add_argument('--mtu', action='store_true', help='mtu test')
+    args = parser.parse_args()
+
+    icmp = Icmp(verbose=args.verbose)
+
+    # request echo
+    if args.echo:
+        ans = icmp.request_echo(args.pdst)
+        if ans:
+            print('get the response')
+            ans.show()
+        else:
+            print('do not find the host')
+        exit(-1)
+
+    # timestamp
+    if args.timestamp:
+        ans = icmp.request_timestamp(args.pdst)
+        if ans:
+            print('get the response')
+            ans.show()
+        else:
+            print('do not find the host')
+        exit(-1)
+
+    # tracert
+    if args.tracert:
+        icmp.tracert(args.pdst)
+        exit(-1)
+
+    # flood
+    if args.flood:
+        icmp.flood(args.pdst)
+        exit(-1)
+
+    # 主机扫描
+    if args.scan:
+        host = icmp.async_host_scan(args.pdst, process_count=args.thread)
+        print('the list of active host')
+        print(host)
+
+    # mtu
+    if args.mtu:
+        icmp.mtu(host=args.pdst)
+        exit(-1)
+
+    print('please input the correct arguments')

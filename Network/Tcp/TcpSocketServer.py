@@ -78,10 +78,14 @@ class TcpSocketServer:
 
 
 if __name__ == '__main__':
-    server = TcpSocketServer(10001, '192.168.2.59')
-    address_key = server.accept()
-    server.send(address_key, 'hello world, you connect to my server, now say bytebyte')
-    server.close(address_key)
+    server = TcpSocketServer(10001, '10.10.95.247')
+    i = 0
+    while True:
+        address_key = server.accept()
+        print(i, address_key)
+        i += 1
+        server.send(address_key, 'hello world, you connect to my server, now say bytebyte')
+        server.close(address_key)
 
 
 

@@ -1,6 +1,6 @@
-from scapy.layers.inet import *
+import random
 
-from Network.Tools import Tools
+from scapy.layers.inet import *
 
 
 class Udp:
@@ -20,7 +20,7 @@ class Udp:
         :param dpst: 目的地址
         :return: 如果存活返回True，否则返回False
         """
-        packet = IP(dst=dpst) / UDP(dport = Tools.get_random_port())
+        packet = IP(dst=dpst) / UDP(dport = random.randint(65535))
         response = sr1(packet, timeout=2, verbose=self.__verbose)
 
         if response:

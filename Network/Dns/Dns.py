@@ -9,6 +9,7 @@ class Dns:
     def get_ip(domain_name:str):
         """
         通过socket.gethostbyname获取ip地址信息
+
         :param domain_name: 主机域名
         :return: ip地址信息
         """
