@@ -1,17 +1,17 @@
+from argparse import ArgumentParser
 import concurrent
+from concurrent.futures.process import ProcessPoolExecutor
 import ipaddress
 import sys
-from argparse import ArgumentParser
-from concurrent.futures.process import ProcessPoolExecutor
 
 from scapy.arch import get_windows_if_list
 from scapy.layers.inet import IP
 from scapy.layers.l2 import *
-from scapy.volatile import RandMAC, RandIP
+from scapy.sendrecv import sniff
+from scapy.volatile import RandIP, RandMAC
 
 
 class Arp:
-
     BoardCast = 'FF:FF:FF:FF:FF:FF'
     Empty = '00:00:00:00:00:00'
 
@@ -23,23 +23,29 @@ class Arp:
         :param timeout: 超时时间
         """
 
-        self.__ether_name = ether_name
-        self.__timeout = timeout
-        self.__verbose = verbose
+        self.ether_name = ether_name
+        self.timeout = timeout
+        self.verbose = verbose
+        self.ip_mac = {}
 
-        if self.__ether_name:
+        if self.ether_name:
             if 'win32' in sys.platform.lower():
                 ifaces = get_windows_if_list()
                 for ether in ifaces:
-                    if ether['name'] == self.__ether_name:
-                        self.__mac = ether['mac']
-                        self.__ip4 = ether['ip']
+                    if ether['name'] == self.ether_name:
+                        self.mac = ether['mac']
+                        self.ip4 = ether['ip']
             else:
-                self.__mac = get_if_hwaddr(self.__ether_name)
-                self.__ip4 = get_if_addr(self.__ether_name)
+                self.mac = get_if_hwaddr(self.ether_name)
+                self.ip4 = get_if_addr(self.ether_name)
         else:
-            self.__ip4 = IP(dst='www.baidu.com').src
-            self.__mac = Ether().src
+            self.ip4 = IP(dst='www.baidu.com').src
+            self.mac = Ether().src
+            if 'win32' in sys.platform.lower():
+                ifaces = get_windows_if_list()
+                for ether in ifaces:
+                    if ether['mac'] == self.mac:
+                        self.ether_name = ether['name']
 
     @classmethod
     def get_arp(cls, op, sendermac, senderip4, targetmac, targetip4):
@@ -66,15 +72,15 @@ class Arp:
         :return: 目标ip地址对应的mac地址
         """
 
-        ether = Ether(src=self.__mac, dst=self.BoardCast)
+        ether = Ether(src=self.mac, dst=self.BoardCast)
         arp = self.get_arp('who-has',
-                           sendermac=self.__mac, senderip4=self.__ip4,
+                           sendermac=self.mac, senderip4=self.ip4,
                            targetmac=self.Empty, targetip4=targetip4)
 
         arp_packet = ether / arp
 
-        answer = srp1(arp_packet, iface=self.__ether_name,
-                      timeout=self.__timeout, verbose=self.__verbose)
+        answer = srp1(arp_packet, iface=self.ether_name,
+                      timeout=self.timeout, verbose=self.verbose)
 
         return answer[ARP].hwsrc if answer else None
 
@@ -86,8 +92,8 @@ class Arp:
         randmac = RandMAC()
         randip = RandIP()
         arp_packet = Ether(src=randmac, dst=randmac) / IP(src=randip, dst=randip)
-        sendp(arp_packet, iface=self.__ether_name, count=sys.maxsize,
-              interval=0.2, verbose=self.__verbose)
+        sendp(arp_packet, iface=self.ether_name, count=sys.maxsize,
+              interval=0.2, verbose=self.verbose)
 
     def spoof(self, targetip4, targetmac, gatewayip4):
         """
@@ -98,15 +104,14 @@ class Arp:
         :param gatewayip4: 网关地址（一般ARP欺骗都是伪造成网关）
         """
 
-        ether = Ether(src=self.__mac, dst=targetmac)
+        ether = Ether(src=self.mac, dst=targetmac)
         arp = self.get_arp(op='is-at',
-                           sendermac=self.__mac, senderip4=gatewayip4,
+                           sendermac=self.mac, senderip4=gatewayip4,
                            targetmac=targetmac, targetip4=targetip4)
         arp_packet = ether / arp
 
-        sendp(arp_packet, iface=self.__ether_name, count=sys.maxsize,
-              interval=0.2, verbose=self.__verbose)
-
+        sendp(arp_packet, iface=self.ether_name, count=sys.maxsize,
+              interval=0.2, verbose=self.verbose)
 
     def list_who_has(self, ip4s):
         """
@@ -127,7 +132,6 @@ class Arp:
 
         return host
 
-
     def async_host_scan(self, pdst, process_count=4):
         """
         使用多核进行arp的主机扫描
@@ -140,7 +144,7 @@ class Arp:
         if len(ips) < 4:
             process_count = 1
 
-        host =[]
+        host = []
         with ProcessPoolExecutor(max_workers=process_count) as executor:
             future_of_func = [executor.submit(self.list_who_has, ips[::i]) for i in range(0, process_count)]
             for future in concurrent.futures.as_completed(future_of_func):
@@ -148,15 +152,33 @@ class Arp:
 
         return host
 
+    def discover_callback(self, pkt):
+        """
+        利用ARP协议进行嗅探发现局域网中存活的主机
+
+        :param pkt: 嗅探到的数据包
+        """
+        senderip4 = pkt[ARP].psrc
+        sendermac = pkt[ARP].hwsrc
+
+        mac = self.ip_mac.get(senderip4)
+        if mac is None:
+            self.ip_mac[senderip4] = sendermac
+            print('发现新的设备', senderip4, sendermac)
+        elif mac and mac != sendermac:
+            self.ip_mac[senderip4] = sendermac
+            print('设备更新信息', senderip4, sendermac)
+
 
 if __name__ == '__main__':
     parser = ArgumentParser('arp tools')
 
     # 普通参数
     parser.add_argument('-e', '--ether', type=str, help='网卡名称')
-    parser.add_argument('-p', '--targetip4', type=str, required=True, help='目标主机的ipv4')
+    parser.add_argument('-p', '--targetip4', type=str, help='目标主机的ipv4')
     parser.add_argument('-t', '--timeout', type=float, default=1, help='等待消息的回复延迟')
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='是否打印地址信息')
+    parser.add_argument('-d', '--discover', default=False, action='store_true', help='嗅探')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-g', '--gwip4', type=str, help='伪造的ip地址，一般为网关地址')
@@ -167,6 +189,8 @@ if __name__ == '__main__':
     if args.gwip4:
         mac = arp.who_has(args.targetip4)
         arp.spoof(args.targetip4, mac, args.gwip4)
+    elif args.discover:
+        sniff(prn=arp.discover_callback, filter='arp', iface=arp.ether_name, store=0)
     else:
         hwsrc = arp.who_has(args.targetip4)
         if hwsrc:

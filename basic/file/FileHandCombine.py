@@ -44,6 +44,7 @@ class FileHandCombine:
 
         return bs
 
+
 if __name__ == '__main__':
     images = ['..\.\material\QmXh6p3DGKfvEVwdvtbiH7SPsmLDfL7LXrowAZtQjkjw73.jpg',
               '..\.\material\QmZkF524d8HWfF8k2yLrZwFz9PtaYgCwy3UqJP5Ahk5aXH',

@@ -75,32 +75,3 @@ class StudentCollection:
 if __name__ == '__main__':
     stds = StudentCollection('../material/student_db.txt')
     print(stds)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

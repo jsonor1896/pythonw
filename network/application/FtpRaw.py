@@ -1,4 +1,4 @@
-from Network.Tcp import TcpSocketClient
+from network.Tcp import TcpSocketClient
 
 
 class FtpRaw:

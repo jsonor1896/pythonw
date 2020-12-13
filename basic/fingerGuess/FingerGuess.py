@@ -4,25 +4,25 @@ FingerNames = ['剪刀', '石头', '布']
 
 FingerGameDict = {
     '剪刀': {
-        '1': '布',
+        '1' : '布',
         '-1': '石头',
-        '0': '剪刀'
+        '0' : '剪刀'
     },
     '石头': {
-        '1': '剪刀',
+        '1' : '剪刀',
         '-1': '布',
-        '0': '石头'
+        '0' : '石头'
     },
-    '布': {
-        '1': '石头',
+    '布' : {
+        '1' : '石头',
         '-1': '剪刀',
-        '0': '布'
+        '0' : '布'
     }
 }
 
 FingerGameLevel = {
-    'win' : 30,
-    'equ' : 70
+    'win': 30,
+    'equ': 70
 }
 
 
@@ -30,7 +30,7 @@ def show_game_start_view():
     print('*' * 30)
     print(' 猜拳游戏现在开始 ')
     print(' 你将拥有10次机会和AI进行竞赛')
-    print('*' * 30 )
+    print('*' * 30)
 
 
 def choose_game_level():
@@ -48,7 +48,7 @@ def user_input_finger():
     while True:
         finger_index = input('请选择你的出拳 0. 剪刀， 1. 石头， 2. 布\n')
         if finger_index in ['0', '1', '2']:
-            finger_name= FingerNames[int(finger_index)]
+            finger_name = FingerNames[int(finger_index)]
             print('你的选择是', finger_name)
             return finger_index, finger_name
 
@@ -64,7 +64,9 @@ def random_game_result():
     else:
         return -1
 
+
 ResultCHName = ['失败', '平局', '胜利']
+
 
 def finger_game():
     show_game_start_view()

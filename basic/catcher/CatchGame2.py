@@ -23,11 +23,11 @@ def go_forward(player, total_step):
 if __name__ == '__main__':
     playerDict = {
         'player1': {
-            'name': 'player1',
+            'name'        : 'player1',
             'current_step': 0
         },
         'player2': {
-            'name': 'player2',
+            'name'        : 'player2',
             'current_step': 0
         }
     }
@@ -44,6 +44,3 @@ if __name__ == '__main__':
             if player['current_step'] == 50:
                 print('you win the game', player['name'])
                 exit(1)
-
-
-

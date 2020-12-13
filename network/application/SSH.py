@@ -1,3 +1,4 @@
+import time
 from argparse import ArgumentParser
 
 import pexpect
@@ -7,7 +8,7 @@ from pexpect import pxssh
 class SSH:
     PROMPT_TXT = ['# ', '>>> ', '> ', '\$ ']
 
-    def __init__(self, user, password, host):
+    def __init__(self, host, user, password):
         """
         ssh连接
 
@@ -88,6 +89,27 @@ class SSH:
 
         return ssh.before
 
+    @staticmethod
+    def passwd_test(host, user, password):
+        """
+        测试主机ssh链接的的用户名以及密码
+
+        :param host: 目标主机
+        :param user: 用户名
+        :param password: 密码
+        """
+
+        for i in range(1, 5):
+            try:
+                s = pxssh.pxssh()
+                s.login(host, user, password)
+                print(f'[+] user={user}, password={password}')
+                return
+            except Exception as e:
+                if 'read_nonblocking' in str(e):
+                    time.sleep(5)
+
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='ssh connected testing')
 
@@ -101,6 +123,6 @@ if __name__ == '__main__':
     host = args.host
     password = args.password
 
-    sh = SSH(user, password, host)
+    sh = SSH(host, user, password)
     # sh.connect()
     sh.connect_ex()

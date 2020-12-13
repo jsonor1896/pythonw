@@ -12,7 +12,6 @@ class CalculatorObject(object):
         self.__val1 = val1
         self.__val2 = val2
 
-
     def add(self):
         """
         加法
@@ -20,14 +19,12 @@ class CalculatorObject(object):
         """
         return self.__val1 + self.__val2
 
-
     def sub(self):
         """
         减法，操作数1-操作数2
         :return: 两个操作数只差
         """
         return self.__val1 - self.__val2
-
 
     def div(self):
         """
@@ -38,7 +35,6 @@ class CalculatorObject(object):
             return None
         else:
             return self.__val1 / self.__val2
-
 
     def mul(self):
         """

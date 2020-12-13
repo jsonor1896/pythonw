@@ -8,6 +8,7 @@ def view_start():
     print('3.*')
     print('4./')
 
+
 def add(v1, v2):
     """
     加法
@@ -96,6 +97,3 @@ def simple_calc():
 
 if __name__ == '__main__':
     simple_calc()
-
-
-

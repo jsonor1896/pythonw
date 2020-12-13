@@ -9,26 +9,25 @@ class RobotLevel(Enum):
 
 
 class FingerGuessRobot(object):
-
     Const_Dict = {
         '剪刀': {
-            '1': '布',
+            '1' : '布',
             '-1': '石头',
-            '0': '剪刀'
+            '0' : '剪刀'
         },
         '石头': {
-            '1': '剪刀',
+            '1' : '剪刀',
             '-1': '布',
-            '0': '石头'
+            '0' : '石头'
         },
-        '布': {
-            '1': '石头',
+        '布' : {
+            '1' : '石头',
             '-1': '剪刀',
-            '0': '布'
+            '0' : '布'
         }
     }
 
-    def __init__(self, level:RobotLevel):
+    def __init__(self, level: RobotLevel):
         if level == RobotLevel.EASY:
             self.__rate = [50, 80, 100]
         elif level == RobotLevel.NORMAL:
@@ -47,4 +46,3 @@ class FingerGuessRobot(object):
         robot_finger = FingerGuessRobot.Const_Dict[your_finger][result]
 
         return result, robot_finger
-

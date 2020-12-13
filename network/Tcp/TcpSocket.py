@@ -1,8 +1,8 @@
+from argparse import ArgumentParser
 import concurrent
+from concurrent.futures.process import ProcessPoolExecutor
 import os
 import socket
-from argparse import ArgumentParser
-from concurrent.futures.process import ProcessPoolExecutor
 
 
 class TcpSocket:

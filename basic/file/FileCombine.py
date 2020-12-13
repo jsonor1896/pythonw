@@ -6,12 +6,10 @@ class FileOperator:
     def __init__(self, file_path):
         self.__file_path = file_path
 
-
     def read_all_lines(self):
         with open(self.__file_path, 'r') as handler:
             txt = handler.readlines()
             return txt
-
 
     def read_lines(self):
         with open(self.__file_path, 'r') as handler:
@@ -20,17 +18,14 @@ class FileOperator:
                 if len(txt) == 0: break
                 yield txt
 
-
     def read_byte(self):
         with open(self.__file_path, 'rb') as handler:
             array_bytes = handler.read()
             return array_bytes
 
-
     def write_new(self, content):
         with open(self.__file_path, 'w') as handler:
             handler.write(content)
-
 
     def write_arrays(self, array):
         with open(self.__file_path, 'w') as handler:
@@ -61,6 +56,7 @@ class ImageCombination:
                     image_bytes = FileOperator(image).read_byte()
                     handler.write(image_bytes)
             i += 1
+
 
 if __name__ == '__main__':
     image_header = '.\material\QmXh6p3DGKfvEVwdvtbiH7SPsmLDfL7LXrowAZtQjkjw73.jpg'

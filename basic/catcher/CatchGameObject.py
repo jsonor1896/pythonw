@@ -44,7 +44,7 @@ class Player:
         """
         显示信息
         """
-        print(self.__name, '-' * self.__current_pos, self.__current_pos )
+        print(self.__name, '-' * self.__current_pos, self.__current_pos)
 
 
 class CatchGame:
@@ -80,14 +80,3 @@ if __name__ == '__main__':
     players = (Player('player1', 50), Player('player2', 50))
     catch_game = CatchGame(players)
     catch_game.start()
-
-
-
-
-
-
-
-
-
-
-
