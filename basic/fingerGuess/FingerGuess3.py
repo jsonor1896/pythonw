@@ -81,7 +81,8 @@ def finger_game():
 
         print('机器人出：', robot_finger)
         print('结果是：', ResultCHName[game_result + 1])
-        if game_result == 1: break
+        if game_result == 1:
+            break
 
         print('剩余次数', play_count)
         print()

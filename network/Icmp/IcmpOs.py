@@ -1,9 +1,9 @@
 # !/usr/bin/python
 # -*- coding:utf-8 -*-
+from argparse import ArgumentParser
 import os
 import re
 import time
-from argparse import ArgumentParser
 
 
 class IcmpOs:
@@ -11,6 +11,16 @@ class IcmpOs:
     通过调用windows命令ping实现功能
 
     对于系统命令而言，一般情况下如果调用成功，返回0，否则返回1
+
+    2021年8月13日 补充：使用返回0或者1的方式会出现一定的问题，可能不能正确的反应ping的结果，可以分析
+                      命令的返回字符串进行解析来确定是否ping成功
+
+                      >>> import os
+                      >>>
+                      >>> result = os.popen("www.baidu.com")
+                      >>> print(result.read())
+                      >>> for line in result.readlines()
+                      >>>   print(line)
     """
 
     @classmethod

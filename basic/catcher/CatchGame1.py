@@ -30,13 +30,13 @@ if __name__ == '__main__':
 
     while True:
         player1_step, step = go_forward(player1_step, total_step)
+        display_input(player1_step, player2_step, 'the turn of player2', f'player1 step {step}')
         if player1_step == total_step:
             print('player1 win the game')
             break
-        display_input(player1_step, player2_step, 'the turn of player2', f'player1 step {step}')
 
         player2_step, step = go_forward(player2_step, total_step)
         if player2_step == total_step:
             print('player2 win the game')
             break
-        display_input(player1_step, player2_step, 'the turn of player1', f'player2 step {step}')
+        display_input(player2_step, player2_step, 'the turn of player1', f'player2 step {step}')

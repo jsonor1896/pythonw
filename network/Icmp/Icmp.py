@@ -34,7 +34,7 @@ class Icmp:
 
         return sr1(packet, timeout=self.__timeout, verbose=self.__verbose)
 
-    def request_echo(self, host):
+    def echo(self, host):
         """
         发送request echo请求
 
@@ -46,7 +46,7 @@ class Icmp:
 
         return self.__sendrecv1(packet)
 
-    def request_timestamp(self, host):
+    def timestamp(self, host):
         """
         发送request timestamp请求，注意，在windows10下需要使用管理员模式运行
 
@@ -122,7 +122,7 @@ class Icmp:
         """
         host = []
         for ip in pdst:
-            response = self.request_echo(str(ip))
+            response = self.echo(str(ip))
             print(f'current start test host: {ip}')
             if response: host.append(ip)
 
@@ -143,7 +143,7 @@ class Icmp:
 
         active_hosts = []
         with ProcessPoolExecutor(max_workers=process_count) as executor:
-            future_of_func = [executor.submit(self.request_echo, str(ip)) for ip in ips]
+            future_of_func = [executor.submit(self.echo, str(ip)) for ip in ips]
             for future in concurrent.futures.as_completed(future_of_func):
                 res = future.result()
                 if res:
@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     # request echo
     if args.echo:
-        ans = icmp.request_echo(args.pdst)
+        ans = icmp.echo(args.pdst)
         if ans:
             print('get the response')
             ans.show()
@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     # timestamp
     if args.timestamp:
-        ans = icmp.request_timestamp(args.pdst)
+        ans = icmp.timestamp(args.pdst)
         if ans:
             print('get the response')
             ans.show()
